@@ -2,9 +2,12 @@
 set -e
 set -o pipefail
 
+# ----------------------------
+# Configuration
+# ----------------------------
 export AVR_GCC="$HOME/Library/Arduino15/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/bin"
+MCU=${MCU:-atmega328p}
 PORT=${PORT:-$(ls /dev/cu.usbmodem* | head -n1)}
-MCU=atmega328p
 
 if [ -z "$PORT" ]; then
     echo "Error: No Arduino port detected."
@@ -12,22 +15,38 @@ if [ -z "$PORT" ]; then
 fi
 
 echo "Building for MCU=$MCU on port=$PORT..."
-rm -rf build
-mkdir -p build
-cd build
 
-# Generate build system
-cmake -S .. -B . -DCMAKE_TOOLCHAIN_FILE=../cmake/avr-toolchain.cmake -DMCU=$MCU
+# ----------------------------
+# Paths
+# ----------------------------
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BUILD_DIR="$SCRIPT_DIR/build"
+HEX_FILE="$BUILD_DIR/bin/ArduinoFramework.hex"
 
-# Build
-cmake --build . --clean-first
+# ----------------------------
+# Clean previous build
+# ----------------------------
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
 
-# HEX file path
-HEX_FILE="$(pwd)/bin/ArduinoFramework.hex"
-echo "Uploading $HEX_FILE to $PORT..."
+# ----------------------------
+# Configure & Build
+# ----------------------------
+cmake -S "$SCRIPT_DIR" -B "$BUILD_DIR" \
+      -DCMAKE_TOOLCHAIN_FILE="$SCRIPT_DIR/avr-toolchain.cmake" \
+      -DMCU="$MCU"
 
+cmake --build "$BUILD_DIR" --clean-first
+
+# ----------------------------
 # Upload
-avrdude -v -p $MCU -c arduino -P $PORT -b 115200 \
-    -U flash:w:$HEX_FILE:i
-
-echo "Upload complete!"
+# ----------------------------
+if [ -f "$HEX_FILE" ]; then
+    echo "Uploading $HEX_FILE to $PORT..."
+    avrdude -v -p "$MCU" -c arduino -P "$PORT" -b 115200 \
+        -U flash:w:"$HEX_FILE":i
+    echo "Upload complete!"
+else
+    echo "Error: HEX file not found!"
+    exit 1
+fi
