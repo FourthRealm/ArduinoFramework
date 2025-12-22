@@ -1,35 +1,36 @@
 #ifndef UNO_H
 #define UNO_H
 
+#define __AVR_ATmega328P__
 #include "fw.h"
 
 namespace fw::board {
 
 // Port D (Pins D0 - D7)
-using PinRX = fw::hal::Pin<fw::hal::PortD, 0>;
-using PinTX = fw::hal::Pin<fw::hal::PortD, 1>;
-using PinD2  = fw::hal::Pin<fw::hal::PortD, 2>;
-using PinD3  = fw::hal::Pin<fw::hal::PortD, 3>;
-using PinD4  = fw::hal::Pin<fw::hal::PortD, 4>;
-using PinD5  = fw::hal::Pin<fw::hal::PortD, 5>;
-using PinD6  = fw::hal::Pin<fw::hal::PortD, 6>;
-using PinD7  = fw::hal::Pin<fw::hal::PortD, 7>;
+using PinRX = fw::hal::Pin<fw::hal::PinPortD, 0>;
+using PinTX = fw::hal::Pin<fw::hal::PinPortD, 1>;
+using PinD2  = fw::hal::Pin<fw::hal::PinPortD, 2>;
+using PinD3  = fw::hal::Pin<fw::hal::PinPortD, 3>;
+using PinD4  = fw::hal::Pin<fw::hal::PinPortD, 4>;
+using PinD5  = fw::hal::Pin<fw::hal::PinPortD, 5>;
+using PinD6  = fw::hal::Pin<fw::hal::PinPortD, 6>;
+using PinD7  = fw::hal::Pin<fw::hal::PinPortD, 7>;
 
 // Port B (Pins D8 - D13)
-using PinD8  = fw::hal::Pin<fw::hal::PortB, 0>;
-using PinD9  = fw::hal::Pin<fw::hal::PortB, 1>;
-using PinD10 = fw::hal::Pin<fw::hal::PortB, 2>;
-using PinD11 = fw::hal::Pin<fw::hal::PortB, 3>;
-using PinD12 = fw::hal::Pin<fw::hal::PortB, 4>;
-using PinD13 = fw::hal::Pin<fw::hal::PortB, 5>;
+using PinD8  = fw::hal::Pin<fw::hal::PinPortB, 0>;
+using PinD9  = fw::hal::Pin<fw::hal::PinPortB, 1>;
+using PinD10 = fw::hal::Pin<fw::hal::PinPortB, 2>;
+using PinD11 = fw::hal::Pin<fw::hal::PinPortB, 3>;
+using PinD12 = fw::hal::Pin<fw::hal::PinPortB, 4>;
+using PinD13 = fw::hal::Pin<fw::hal::PinPortB, 5>;
 
 // Port C (Analog Pins A0 - A5)
-using PinA0  = fw::hal::Pin<fw::hal::PortC, 0>;
-using PinA1  = fw::hal::Pin<fw::hal::PortC, 1>;
-using PinA2  = fw::hal::Pin<fw::hal::PortC, 2>;
-using PinA3  = fw::hal::Pin<fw::hal::PortC, 3>;
-using PinA4 = fw::hal::Pin<fw::hal::PortC, 4>;
-using PinA5 = fw::hal::Pin<fw::hal::PortC, 5>;
+using PinA0  = fw::hal::Pin<fw::hal::PinPortC, 0>;
+using PinA1  = fw::hal::Pin<fw::hal::PinPortC, 1>;
+using PinA2  = fw::hal::Pin<fw::hal::PinPortC, 2>;
+using PinA3  = fw::hal::Pin<fw::hal::PinPortC, 3>;
+using PinA4 = fw::hal::Pin<fw::hal::PinPortC, 4>;
+using PinA5 = fw::hal::Pin<fw::hal::PinPortC, 5>;
 
 } // namespace fw::board
 
