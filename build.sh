@@ -12,11 +12,12 @@ if [ -z "$PORT" ]; then
 fi
 
 echo "Building for MCU=$MCU on port=$PORT..."
+rm -rf build
 mkdir -p build
 cd build
 
 # Generate build system
-cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/avr-toolchain.cmake -DMCU=$MCU ..
+cmake -S .. -B . -DCMAKE_TOOLCHAIN_FILE=../cmake/avr-toolchain.cmake -DMCU=$MCU
 
 # Build
 cmake --build . --clean-first
