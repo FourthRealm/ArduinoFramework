@@ -6,6 +6,22 @@
 
 namespace fw::hal {
 
+// ==================== Abstracted functions ==================== //
+
+inline void restoreLastInterruptState(uint8_t sreg) {
+    SREG = sreg;
+}
+
+inline void enableInterrupts() {
+    sei();
+}
+
+inline uint8_t disableInterrupts() {
+    uint8_t sreg = SREG;
+    cli();
+    return sreg;
+}
+
 // ==================== External Interrupt Sources ================= //
 
 struct Interrupt0 {
@@ -30,7 +46,7 @@ struct Interrupt1 {
 // ==================== External Interrupt Template ================= //
 
 // Trigger enum for all interrupt conditions
-enum class Trigger { LOW, RISING, FALLING, CHANGE };
+enum class Trigger { RISING, FALLING, CHANGE };
 
 // Base class to hold the callback
 template<typename Source>
@@ -56,40 +72,42 @@ struct ExternalInterrupt : ExternalInterruptBase<Source> {
             case Trigger::RISING:  mask = (1 << Source::eicraBit0) | (1 << Source::eicraBit1); break;
             case Trigger::FALLING: mask = (1 << Source::eicraBit1); break;
             case Trigger::CHANGE:  mask = (1 << Source::eicraBit0); break;
-            case Trigger::LOW:     mask = 0; break;
         }
+
+        uint8_t sreg = SREG;
+        cli();
 
         // Clear bits
         Source::eicra &= ~((1 << Source::eicraBit0) | (1 << Source::eicraBit1));
 
         // Set correct trigger
         Source::eicra |= mask;
+
+        SREG = sreg;
     }
 
     // Turn on the interrupt.
     static void attach(Callback callback = nullptr) {
         ExternalInterruptBase<Source>::callback = callback;
+
+        uint8_t sreg = SREG;
+        cli();
+
+        EIFR |= (1 << Source::eimskBit);
         Source::eimsk |= (1 << Source::eimskBit);
+
+        SREG = sreg;
     }
 
     // Turn off the interrupt.
     static void detach() {
-        Source::eimsk |= (1 << Source::eimskBit);
+        uint8_t sreg = SREG;
+        cli();
+        Source::eimsk &= ~(1 << Source::eimskBit);
+        SREG = sreg;
     }
+
 };
-
-
-// ==================== ISR Definitions ================= //
-
-ISR(INT0_vect) {
-    if(ExternalInterruptBase<Interrupt0>::callback)
-        ExternalInterruptBase<Interrupt0>::callback();
-}
-
-ISR(INT1_vect) {
-    if(ExternalInterruptBase<Interrupt1>::callback)
-        ExternalInterruptBase<Interrupt1>::callback();   
-}
 
 }
 

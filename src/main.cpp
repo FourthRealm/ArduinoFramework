@@ -1,52 +1,49 @@
-#define FW_BOARD_UNO
 #include <fw.h>
 
-volatile uint8_t button_event = 0;
-void buttonEvent() {
-    button_event = 1;
+using namespace fw;
+
+volatile bool stop = false;
+void onButton() {
+    stop = true;
 }
 
-uint64_t getTicks() {
-    cli();
-    uint64_t ticks = fw::sys::tick_count;
-    sei();
-    return ticks;
+bool getStop() {
+    uint8_t state = hal::disableInterrupts();
+    bool storedStop = stop;
+    hal::restoreLastInterruptState(state);
+    return storedStop;
 }
 
 int main() { 
-    // Initialize components
-
-    using LED = fw::board::PinD12;
-    LED::setOutput();
-    LED::high();
+    using LED_A = board::PinD3;
+    LED_A::setOutput();
+    LED_A::high();
     
-    using BUTTON = fw::board::PinD2;
+    using BUTTON = board::PinD2;
     BUTTON::setInputPullup();
 
-    using BUTTON_INTERRUPT = fw::board::Interrupt0;
-    BUTTON_INTERRUPT::configureTrigger(fw::hal::Trigger::FALLING);
-    BUTTON_INTERRUPT::attach(buttonEvent);
+    using BUTTON_INTERRUPT = board::Interrupt0;
+    BUTTON_INTERRUPT::configureTrigger(hal::Trigger::FALLING);
+    BUTTON_INTERRUPT::attach(onButton);
 
-    // Setup timers
+    board::MillisTimer::configure();
 
-    fw::board::Timer0::configure(fw::hal::Timer0Modes::normal, 64);
+    hal::enableInterrupts();
 
-    sei();
-
-    bool isLedOn = true;
+    uint32_t millis;
     while(true) {
-        if(button_event) {
-            button_event = 0;
-            isLedOn = !isLedOn;
+        sys::millis(&millis);
+
+        if(millis % 1000 > 500) {
+            LED_A::high();
+        }
+        else {
+            LED_A::low();
         }
 
-        if(isLedOn) {
-            if(getTicks() % 1000 < 500)
-                LED::high();
-            else
-                LED::low();
-        } 
-        else
-            LED::low();
+        if(getStop() == true) {
+            LED_A::low();
+            while(true) {}
+        }
     }
 }

@@ -11,6 +11,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 file(GLOB_RECURSE SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
 # Add executable including all source files
+add_definitions(-DFW_BOARD_UNO)
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 # Include path for framework headers

@@ -1,6 +1,8 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include "board_def.h"
+
 #if defined(FW_BOARD_NANO)
     #include "nano.h"
 #elif defined(FW_BOARD_UNO)

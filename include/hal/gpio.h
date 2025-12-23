@@ -2,7 +2,6 @@
 #define PIN_IO_H
 
 #include <avr/io.h>
-
 #include "stdint.h"
 
 namespace fw::hal {

@@ -1,7 +1,7 @@
 #ifndef NANO_H
 #define NANO_H
 
-#include "fw.h"
+#include "hal/hal.h"
 
 namespace fw::board {
 
@@ -41,9 +41,9 @@ using Interrupt1 = fw::hal::ExternalInterrupt<fw::hal::Interrupt1>;
 
 // =================== Timer Definitions =================== //
 
-using Timer0 = fw::hal::Timer<fw::hal::Timer0Regs>;
-using Timer1 = fw::hal::Timer<fw::hal::Timer1Regs>;
-using Timer2 = fw::hal::Timer<fw::hal::Timer2Regs>;
+using CycleTimer = fw::hal::Timer<fw::hal::Timer0Regs, 0, 0>;
+using MicrosTimer = fw::hal::Timer<fw::hal::Timer1Regs, (65536 - 100), 8>;
+using MillisTimer = fw::hal::Timer<fw::hal::Timer2Regs, (256 - 250), 64>;
 
 } // namespace fw::board
 

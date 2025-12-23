@@ -124,70 +124,101 @@ struct Timer2Modes {
 
 // ==================== Generic timer interface ==================== //
 
-// Interface for timers
 template<typename Regs>
-struct Timer {
-    using counter_t = typename Regs::counter_t;
-    using compare_t = typename Regs::compare_t;
+using counter_t = typename Regs::counter_t;
 
+template<typename Regs>
+using compare_t = typename Regs::compare_t;
+
+// Interface for timers
+template<
+    typename Regs, 
+    counter_t<Regs> StartTick = 0,
+    uint16_t Prescaler = 64,
+    uint8_t Mode = 0,
+    compare_t<Regs> CompareA = 0,
+    compare_t<Regs> CompareB = 0
+>
+struct Timer {
     // Configure the timer with mode, prescaler, and optional compare values.
-    static void configure(uint8_t mode, uint8_t prescaler, compare_t compareA = 0, compare_t compareB = 0) {
-        setWGM<Regs>(mode);
-        write(0);
-        setCompareA(0);
-        setCompareB(0);
-        start(prescaler);
+    static void configure() {
+        setWGM<Regs>(Mode);
+        write(StartTick);
+        setCompareA(CompareA);
+        setCompareB(CompareB);
+        enableOverflowInterrupt();
+        start(Prescaler);
+    }
+
+    static uint8_t prescalerBits(uint16_t prescaler) {
+        switch(prescaler) {
+            case 1:    return 0b001;
+            case 8:    return 0b010;
+            case 64:   return 0b011;
+            case 256:  return 0b100;
+            case 1024: return 0b101;
+            default:   return 0; // stop
+        }
     }
 
     // Start the timer with the given prescaler. Should call configure first.
-    static void start(uint8_t prescaler) {
+    static void start(uint16_t prescaler = Prescaler) {
         stop();
-        Regs::tccrb |= prescaler;
+        uint8_t sreg = SREG;
+        cli();
+        Regs::tccrb |= prescalerBits(prescaler);
+        SREG = sreg;
     }
 
     // Stop the timer.
     static void stop() {
+        uint8_t sreg = SREG;
+        cli();
         Regs::tccrb &= ~0x07;
+        SREG = sreg;
     }
 
     // Direct read of timer counter.
     static auto read() {
-        return Regs::tcnt;
+        uint8_t sreg = SREG;
+        cli();
+        auto value = Regs::tcnt;
+        SREG = sreg;
+        return value;
     }
     
     // Direct write to timer counter. Use with caution.
-    static void write(counter_t value) {
+    static void write(counter_t<Regs> value = StartTick) {
+        uint8_t sreg = SREG;
+        cli();
         Regs::tcnt = value;
+        SREG = sreg;
     }
 
     // Set Output Compare Register A
-    static void setCompareA(compare_t value) {
+    static void setCompareA(compare_t<Regs> value) {
         Regs::ocra = value;
     }
 
     // Set Output Compare Register B
-    static void setCompareB(compare_t value) {
+    static void setCompareB(compare_t<Regs> value) {
         Regs::ocrb = value;
     }
 
     static void enableOverflowInterrupt() {
+        uint8_t sreg = SREG;
+        cli();
         Regs::timsk |= (1 << TimerTraits<Regs>::toie);
+        SREG = sreg;
+    }
+
+    static void disableOverflowInterrupt() {
+        uint8_t sreg = SREG;
+        cli();
+        Regs::timsk &= ~(1 << TimerTraits<Regs>::toie);
+        SREG = sreg;
     }
 };
-
-// ==================== ISR Definitions ================= //
-
-ISR(TIMER0_OVF_vect) {
-    fw::hal::onTimer0Overflow();
-}
-
-ISR(TIMER1_OVF_vect) {
-    fw::hal::onTimer1Overflow();
-}
-
-ISR(TIMER2_OVF_vect) {
-    fw::hal::onTimer2Overflow();
-}
 
 } // namespace fw::hal
 
