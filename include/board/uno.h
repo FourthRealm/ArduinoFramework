@@ -1,10 +1,11 @@
 #ifndef UNO_H
 #define UNO_H
 
-#define __AVR_ATmega328P__
 #include "fw.h"
 
 namespace fw::board {
+
+// =================== Pin Definitions ================= //
 
 // Port D (Pins D0 - D7)
 using PinRX = fw::hal::Pin<fw::hal::PinPortD, 0>;
@@ -31,6 +32,20 @@ using PinA2  = fw::hal::Pin<fw::hal::PinPortC, 2>;
 using PinA3  = fw::hal::Pin<fw::hal::PinPortC, 3>;
 using PinA4 = fw::hal::Pin<fw::hal::PinPortC, 4>;
 using PinA5 = fw::hal::Pin<fw::hal::PinPortC, 5>;
+
+
+// =================== Interrupt Definitions =================== //
+
+using Interrupt0 = fw::hal::ExternalInterrupt<fw::hal::Interrupt0>;
+using Interrupt1 = fw::hal::ExternalInterrupt<fw::hal::Interrupt1>;
+
+
+// =================== Timer Definitions =================== //
+
+using Timer0 = fw::hal::Timer<fw::hal::Timer0Regs>;
+using Timer1 = fw::hal::Timer<fw::hal::Timer1Regs>;
+using Timer2 = fw::hal::Timer<fw::hal::Timer2Regs>;
+
 
 } // namespace fw::board
 

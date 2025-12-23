@@ -1,7 +1,6 @@
 #ifndef NANO_H
 #define NANO_H
 
-#define __AVR_ATmega328P__
 #include "fw.h"
 
 namespace fw::board {
@@ -33,6 +32,18 @@ using PinA4  = fw::hal::Pin<fw::hal::PinPortC, 4>; // SDA
 using PinA5  = fw::hal::Pin<fw::hal::PinPortC, 5>; // SCL
 using PinA6  = fw::hal::Pin<fw::hal::PinPortC, 6>; // only on Nano, used as analog input
 using PinA7  = fw::hal::Pin<fw::hal::PinPortC, 7>; // only on Nano, used as analog input
+
+// =================== Interrupt Definitions =================== //
+
+using Interrupt0 = fw::hal::ExternalInterrupt<fw::hal::Interrupt0>;
+using Interrupt1 = fw::hal::ExternalInterrupt<fw::hal::Interrupt1>;
+
+
+// =================== Timer Definitions =================== //
+
+using Timer0 = fw::hal::Timer<fw::hal::Timer0Regs>;
+using Timer1 = fw::hal::Timer<fw::hal::Timer1Regs>;
+using Timer2 = fw::hal::Timer<fw::hal::Timer2Regs>;
 
 } // namespace fw::board
 

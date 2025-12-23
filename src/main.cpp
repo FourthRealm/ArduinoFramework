@@ -1,31 +1,21 @@
 #define FW_BOARD_UNO
-#include "fw.h"
-
-#include <avr/io.h>
-#include <avr/interrupt.h>
-
-// volatile uint32_t system_ms = 0;
-
-// ISR(TIMER1_COMPA_vect) {
-//     system_ms++;
-// }
-
-// void setup_timer1() {
-//     TCCR1A = 0;
-//     TCCR1B = (1 << WGM12); // CTC mode
-//     OCR1A = 249; // 16 MHz / 64 / 1000 - 1
-//     TCCR1B |= (1 << CS11) | (1 << CS10); // prescaler 64
-//     TIMSK1 |= (1 << OCIE1A); // enable compare interrupt
-// }
+#include <fw.h>
 
 volatile uint8_t button_event = 0;
 void buttonEvent() {
     button_event = 1;
 }
 
-int main() {
-    // setup_timer1();
- 
+uint64_t getTicks() {
+    cli();
+    uint64_t ticks = fw::sys::tick_count;
+    sei();
+    return ticks;
+}
+
+int main() { 
+    // Initialize components
+
     using LED = fw::board::PinD12;
     LED::setOutput();
     LED::high();
@@ -33,15 +23,30 @@ int main() {
     using BUTTON = fw::board::PinD2;
     BUTTON::setInputPullup();
 
-    using BUTTON_EVENT = fw::hal::ExternalInterrupt<fw::hal::Interrupt0, buttonEvent>;
-    BUTTON_EVENT::init(fw::hal::Trigger::FALLING);
+    using BUTTON_INTERRUPT = fw::board::Interrupt0;
+    BUTTON_INTERRUPT::configureTrigger(fw::hal::Trigger::FALLING);
+    BUTTON_INTERRUPT::attach(buttonEvent);
+
+    // Setup timers
+
+    fw::board::Timer0::configure(fw::hal::Timer0Modes::normal, 64);
 
     sei();
 
+    bool isLedOn = true;
     while(true) {
         if(button_event) {
             button_event = 0;
-            LED::toggle();
+            isLedOn = !isLedOn;
         }
+
+        if(isLedOn) {
+            if(getTicks() % 1000 < 500)
+                LED::high();
+            else
+                LED::low();
+        } 
+        else
+            LED::low();
     }
 }

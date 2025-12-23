@@ -38,21 +38,17 @@ struct ExternalInterruptBase {
     static void (*callback)();
 };
 
+// Define callback
+using Callback = void(*)();
+
 // Initialize static member as nullptr by default
 template<typename Source>
 void (*ExternalInterruptBase<Source>::callback)() = nullptr;
 
 // External Interrupt class template
-template<typename Source, void(*Callback)()>
+template<typename Source>
 struct ExternalInterrupt : ExternalInterruptBase<Source> {
     // Enables interrupt
-    static void init(Trigger t) {
-        configureTrigger(t);
-        ExternalInterruptBase<Source>::callback = Callback;
-        Source::eimsk |= (1 << Source::eimskBit);
-    }
-
-private:
     static void configureTrigger(Trigger t) {
         // Calculate the bitmask
         uint8_t mask = 0;
@@ -68,6 +64,17 @@ private:
 
         // Set correct trigger
         Source::eicra |= mask;
+    }
+
+    // Turn on the interrupt.
+    static void attach(Callback callback = nullptr) {
+        ExternalInterruptBase<Source>::callback = callback;
+        Source::eimsk |= (1 << Source::eimskBit);
+    }
+
+    // Turn off the interrupt.
+    static void detach() {
+        Source::eimsk |= (1 << Source::eimskBit);
     }
 };
 
