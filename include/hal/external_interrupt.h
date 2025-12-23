@@ -3,70 +3,55 @@
 
 #include <avr/interrupt.h>
 #include <stdint.h>
+#include "core.h"
 
 namespace fw::hal {
 
-// ==================== Abstracted functions ==================== //
-
-inline void restoreLastInterruptState(uint8_t sreg) {
-    SREG = sreg;
-}
-
-inline void enableInterrupts() {
-    sei();
-}
-
-inline uint8_t disableInterrupts() {
-    uint8_t sreg = SREG;
-    cli();
-    return sreg;
-}
+namespace internal {
 
 // ==================== External Interrupt Sources ================= //
 
 struct Interrupt0 {
     static inline volatile uint8_t& eimsk = EIMSK;
-    static inline uint8_t eimskBit = INT0;
+    static constexpr uint8_t eimskBit = INT0;
 
     static inline volatile uint8_t& eicra = EICRA;
-    static inline uint8_t eicraBit0 = ISC00;
-    static inline uint8_t eicraBit1 = ISC01;
+    static constexpr uint8_t eicraBit0 = ISC00;
+    static constexpr uint8_t eicraBit1 = ISC01;
 };
 
 struct Interrupt1 {
     static inline volatile uint8_t& eimsk = EIMSK;
-    static inline uint8_t eimskBit = INT1;
+    static constexpr uint8_t eimskBit = INT1;
 
     static inline volatile uint8_t& eicra = EICRA;
-    static inline uint8_t eicraBit0 = ISC10;
-    static inline uint8_t eicraBit1 = ISC11;
+    static constexpr uint8_t eicraBit0 = ISC10;
+    static constexpr uint8_t eicraBit1 = ISC11;
 };
 
+// ==================== External Interrupt Base ================= //
+
+template<typename Source>
+struct ExternalInterruptBase {
+    using Callback = void(*)();
+    static Callback callback;
+};
+
+// Initialize static member
+template<typename Source>
+typename ExternalInterruptBase<Source>::Callback ExternalInterruptBase<Source>::callback = nullptr;
+
+} // namespace internal
 
 // ==================== External Interrupt Template ================= //
 
-// Trigger enum for all interrupt conditions
-enum class Trigger { RISING, FALLING, CHANGE };
-
-// Base class to hold the callback
 template<typename Source>
-struct ExternalInterruptBase {
-    static void (*callback)();
-};
+struct ExternalInterrupt : internal::ExternalInterruptBase<Source> {
 
-// Define callback
-using Callback = void(*)();
+    enum class Trigger { RISING, FALLING, CHANGE };
 
-// Initialize static member as nullptr by default
-template<typename Source>
-void (*ExternalInterruptBase<Source>::callback)() = nullptr;
-
-// External Interrupt class template
-template<typename Source>
-struct ExternalInterrupt : ExternalInterruptBase<Source> {
-    // Enables interrupt
+    // Configure the trigger type
     static void configureTrigger(Trigger t) {
-        // Calculate the bitmask
         uint8_t mask = 0;
         switch(t) {
             case Trigger::RISING:  mask = (1 << Source::eicraBit0) | (1 << Source::eicraBit1); break;
@@ -74,41 +59,34 @@ struct ExternalInterrupt : ExternalInterruptBase<Source> {
             case Trigger::CHANGE:  mask = (1 << Source::eicraBit0); break;
         }
 
-        uint8_t sreg = SREG;
-        cli();
+        fw::hal::disableInterrupts();
 
-        // Clear bits
-        Source::eicra &= ~((1 << Source::eicraBit0) | (1 << Source::eicraBit1));
+        // Clear previous bits and set new mask
+        Source::eicra = (Source::eicra & ~((1 << Source::eicraBit0) | (1 << Source::eicraBit1))) | mask;
 
-        // Set correct trigger
-        Source::eicra |= mask;
-
-        SREG = sreg;
+        fw::hal::restoreInterrupts();
     }
 
-    // Turn on the interrupt.
-    static void attach(Callback callback = nullptr) {
-        ExternalInterruptBase<Source>::callback = callback;
+    // Attach a callback and enable the interrupt
+    static void attach(typename internal::ExternalInterruptBase<Source>::Callback cb = nullptr) {
+        internal::ExternalInterruptBase<Source>::callback = cb;
 
-        uint8_t sreg = SREG;
-        cli();
+        fw::hal::disableInterrupts();
 
-        EIFR |= (1 << Source::eimskBit);
-        Source::eimsk |= (1 << Source::eimskBit);
+        EIFR |= (1 << Source::eimskBit);   // Clear any pending interrupt
+        Source::eimsk |= (1 << Source::eimskBit); // Enable interrupt
 
-        SREG = sreg;
+        fw::hal::restoreInterrupts();
     }
 
-    // Turn off the interrupt.
+    // Detach the interrupt
     static void detach() {
-        uint8_t sreg = SREG;
-        cli();
+        fw::hal::disableInterrupts();
         Source::eimsk &= ~(1 << Source::eimskBit);
-        SREG = sreg;
+        fw::hal::restoreInterrupts();
     }
-
 };
 
-}
+} // namespace fw::hal
 
 #endif // INTERRUPT_H

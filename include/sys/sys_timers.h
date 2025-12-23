@@ -10,21 +10,21 @@ namespace fw::sys {
     extern volatile uint32_t millisCount;
 
     inline void ticks(uint32_t& outLow) {
-        uint8_t lastState = fw::hal::disableInterrupts();
+        fw::hal::InterruptState lastState = fw::hal::disableInterrupts();
         outLow = tickCount;
-        fw::hal::restoreLastInterruptState(lastState);
+        fw::hal::restoreInterruptState(lastState);
     }
 
     inline void micros(uint32_t& outLow) {
-        uint8_t lastState = fw::hal::disableInterrupts();
+        fw::hal::InterruptState lastState = fw::hal::disableInterrupts();
         outLow = microsCount;
-        fw::hal::restoreLastInterruptState(lastState);
+        fw::hal::restoreInterruptState(lastState);
     }
 
     inline void millis(uint32_t& outLow) {
-        uint8_t lastState = fw::hal::disableInterrupts();
+        fw::hal::InterruptState lastState = fw::hal::disableInterrupts();
         outLow = millisCount;
-        fw::hal::restoreLastInterruptState(lastState);
+        fw::hal::restoreInterruptState(lastState);
     }
 }
 

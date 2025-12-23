@@ -9,7 +9,7 @@ namespace fw::sys {
 }
 
 // =================== Timer overflow functions =================== //
-namespace fw::hal {
+namespace fw::hal::internal {
     void onTimer0Overflow() {
         fw::board::CycleTimer::write(/*To overflow value*/);
         fw::sys::tickCount += 1;

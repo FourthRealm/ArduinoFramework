@@ -1,7 +1,7 @@
 #ifndef HOOKS_H
 #define HOOKS_H
 
-namespace fw::hal {
+namespace fw::hal::internal {
 
 void onTimer0Overflow();
 void onTimer1Overflow();

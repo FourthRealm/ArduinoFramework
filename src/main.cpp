@@ -1,3 +1,4 @@
+#define FW_BOARD_UNO
 #include <fw.h>
 
 using namespace fw;
@@ -7,10 +8,10 @@ void onButton() {
     stop = true;
 }
 
-bool getStop() {
-    uint8_t state = hal::disableInterrupts();
+inline bool getStop() {
+    hal::InterruptState state = hal::disableInterrupts();
     bool storedStop = stop;
-    hal::restoreLastInterruptState(state);
+    hal::restoreInterruptState(state);
     return storedStop;
 }
 
@@ -23,18 +24,20 @@ int main() {
     BUTTON::setInputPullup();
 
     using BUTTON_INTERRUPT = board::Interrupt0;
-    BUTTON_INTERRUPT::configureTrigger(hal::Trigger::FALLING);
+    BUTTON_INTERRUPT::configureTrigger(board::InterruptTrigger::FALLING);
     BUTTON_INTERRUPT::attach(onButton);
 
     board::MillisTimer::configure();
 
     hal::enableInterrupts();
 
+
     uint32_t millis;
     while(true) {
         sys::millis(millis);
+        millis %= 1000;
 
-        if(millis % 1000 > 500) {
+        if(millis > 500) {
             LED_A::high();
         }
         else {

@@ -1,6 +1,6 @@
 #include "hal/external_interrupt.h"
 
-namespace fw::hal {
+namespace fw::hal::internal {
 
 // ==================== ISR Definitions ================= //
 

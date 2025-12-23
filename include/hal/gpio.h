@@ -5,7 +5,9 @@
 #include "stdint.h"
 
 namespace fw::hal {
-
+    
+namespace internal {
+    
 // ==================== Pin Port Definitions ================= //
 
 struct PinPortD {
@@ -26,6 +28,8 @@ struct PinPortC {
     static inline volatile uint8_t& pin = PINC; // Input Pins Register
 };
 
+}
+
 // ==================== Pin Definition Template ================= //
 
 template<typename PinPort, uint8_t PinBit>
@@ -33,7 +37,6 @@ struct Pin {
     static_assert(PinBit < 8, "Pin bit must be 0-7");
 
     // Constant values evaluated at compile time
-    static constexpr uint8_t bit = PinBit;
     static constexpr uint8_t mask = uint8_t(1) << PinBit;
     static inline volatile uint8_t& ddr = PinPort::ddr;
     static inline volatile uint8_t& port = PinPort::port;
@@ -65,12 +68,12 @@ struct Pin {
         PinPort::port &= ~mask;
     }
 
-    // Toggle the pin state
+    // Toggle the pin state (atomic)
     inline static void toggle() {
         PinPort::pin = mask;
     }
 
-    // Read the pin state
+    // Read the pin state (atomic)
     inline static bool read() {
         return PinPort::pin & mask;
     }

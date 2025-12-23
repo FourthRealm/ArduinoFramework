@@ -3,54 +3,54 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "core.h" // For disableInterrupts / restoreInterrupts
 
 namespace fw::hal {
 
+namespace internal {
+
 // ==================== Timer sources ================= //
 
-// Registers for Timer0
 struct Timer0Regs {
     using counter_t = uint8_t;
     using compare_t = uint8_t;
 
-    static inline volatile uint8_t& tccra = TCCR0A; // Timer/Counter Control Register A
-    static inline volatile uint8_t& tccrb = TCCR0B; // Timer/Counter Control Register B
-    static inline volatile uint8_t& tcnt = TCNT0;    // Timer/Counter Register
-    static inline volatile uint8_t& ocra = OCR0A;   // Output Compare Register A
-    static inline volatile uint8_t& ocrb = OCR0B;   // Output Compare Register B
-    static inline volatile uint8_t& timsk = TIMSK0; // Timer Interrupt Mask Register
-    static inline volatile uint8_t& tifr = TIFR0;   // Timer Interrupt Flag Register
+    static inline volatile uint8_t& tccra = TCCR0A;
+    static inline volatile uint8_t& tccrb = TCCR0B;
+    static inline volatile uint8_t& tcnt  = TCNT0;
+    static inline volatile uint8_t& ocra  = OCR0A;
+    static inline volatile uint8_t& ocrb  = OCR0B;
+    static inline volatile uint8_t& timsk = TIMSK0;
+    static inline volatile uint8_t& tifr  = TIFR0;
 };
 
-// Registers for Timer1
 struct Timer1Regs {
     using counter_t = uint16_t;
     using compare_t = uint16_t;
 
-    static inline volatile uint8_t& tccra = TCCR1A; // Timer/Counter Control Register A
-    static inline volatile uint8_t& tccrb = TCCR1B; // Timer/Counter Control Register B
-    static inline volatile uint8_t& tccrc = TCCR1C; // Timer/Counter Control Register C
-    static inline volatile uint16_t& tcnt = TCNT1;   // Timer/Counter Register
-    static inline volatile uint16_t& ocra = OCR1A;  // Output Compare Register A
-    static inline volatile uint16_t& ocrb = OCR1B;  // Output Compare Register B
-    static inline volatile uint16_t& icr = ICR1;    // Input capture register
-    static inline volatile uint8_t& timsk = TIMSK1; // Timer Interrupt Mask Register
-    static inline volatile uint8_t& tifr = TIFR1;   // Timer Interrupt Flag Register
+    static inline volatile uint8_t& tccra = TCCR1A;
+    static inline volatile uint8_t& tccrb = TCCR1B;
+    static inline volatile uint8_t& tccrc = TCCR1C;
+    static inline volatile uint16_t& tcnt = TCNT1;
+    static inline volatile uint16_t& ocra = OCR1A;
+    static inline volatile uint16_t& ocrb = OCR1B;
+    static inline volatile uint16_t& icr  = ICR1;
+    static inline volatile uint8_t& timsk = TIMSK1;
+    static inline volatile uint8_t& tifr  = TIFR1;
 };
 
-// Registers for Timer2
 struct Timer2Regs {
     using counter_t = uint8_t;
     using compare_t = uint8_t;
 
-    static inline volatile uint8_t& tccra = TCCR2A; // Timer/Counter Control Register A
-    static inline volatile uint8_t& tccrb = TCCR2B; // Timer/Counter Control Register B
-    static inline volatile uint8_t& tcnt = TCNT2;    // Timer/Counter Register
-    static inline volatile uint8_t& ocra = OCR2A;   // Output Compare Register A
-    static inline volatile uint8_t& ocrb = OCR2B;   // Output Compare Register B
-    static inline volatile uint8_t& assr = ASSR;    // Asynchronous Control Register
-    static inline volatile uint8_t& timsk = TIMSK2; // Timer Interrupt Mask Register
-    static inline volatile uint8_t& tifr = TIFR2;   // Timer Interrupt Flag Register
+    static inline volatile uint8_t& tccra = TCCR2A;
+    static inline volatile uint8_t& tccrb = TCCR2B;
+    static inline volatile uint8_t& tcnt  = TCNT2;
+    static inline volatile uint8_t& ocra  = OCR2A;
+    static inline volatile uint8_t& ocrb  = OCR2B;
+    static inline volatile uint8_t& assr  = ASSR;
+    static inline volatile uint8_t& timsk = TIMSK2;
+    static inline volatile uint8_t& tifr  = TIFR2;
 };
 
 // ==================== Timer traits ==================== //
@@ -58,7 +58,6 @@ struct Timer2Regs {
 template<typename TimerRegs>
 struct TimerTraits;
 
-// Specialization for Timer0
 template<>
 struct TimerTraits<Timer0Regs> {
     static constexpr uint8_t wgmbits = 0b111;
@@ -66,7 +65,6 @@ struct TimerTraits<Timer0Regs> {
     static constexpr bool is16bit = false;
 };
 
-// Specialization for Timer1
 template<>
 struct TimerTraits<Timer1Regs> {
     static constexpr uint8_t wgmbits = 0b1111;
@@ -74,7 +72,6 @@ struct TimerTraits<Timer1Regs> {
     static constexpr bool is16bit = true;
 };
 
-// Specialization for Timer2
 template<>
 struct TimerTraits<Timer2Regs> {
     static constexpr uint8_t wgmbits = 0b111;
@@ -82,67 +79,36 @@ struct TimerTraits<Timer2Regs> {
     static constexpr bool is16bit = false;
 };
 
-// ==================== Timer WGM Configuration ==================== //
+// ==================== WGM helpers ==================== //
 
-// Set the Waveform Generation Mode (WGM) bits (works for both 8-bit and 16-bit timers)
 template<typename Regs>
 static void setWGM(uint8_t wgm) {
     if constexpr (!TimerTraits<Regs>::is16bit) {
-        // 8-bit timer
         Regs::tccra = (Regs::tccra & ~0b11) | (wgm & 0b11);
-        Regs::tccrb = (Regs::tccrb & ~(1 << 3)) | ((wgm >> 2) << 3);        
-    }
-    else {
-        // 16-bit timer
+        Regs::tccrb = (Regs::tccrb & ~(1 << 3)) | ((wgm >> 2) << 3);
+    } else {
         Regs::tccra = (Regs::tccra & ~0b11) | (wgm & 0b11);
         Regs::tccrb = (Regs::tccrb & ~((1<<4)|(1<<3))) | ((wgm & 0b1100) << 1);
     }
 }
 
-// Predefined WGM modes for Timer0
-struct Timer0Modes {
-    static constexpr uint8_t normal = 0b000;
-    static constexpr uint8_t ctc = 0b010;
-    static constexpr uint8_t fastPWM = 0b011;
-};
+// Predefined modes
+struct Timer0Modes { static constexpr uint8_t normal = 0b000, ctc = 0b010, fastPWM = 0b011; };
+struct Timer1Modes { static constexpr uint8_t normal = 0b0000, ctc = 0b0100, fastPWM = 0b1110, phaseCorrectPWM = 0b1000; };
+struct Timer2Modes { static constexpr uint8_t normal = 0b000, ctc = 0b010, fastPWM = 0b011; };
 
-// Predefined WGM modes for Timer1
-struct Timer1Modes {
-    static constexpr uint8_t normal = 0b0000;
-    static constexpr uint8_t ctc = 0b0100;
-    static constexpr uint8_t fastPWM = 0b1110;
-    static constexpr uint8_t phaseCorrectPWM = 0b1000;
-};
-
-// Predefined WGM modes for Timer2
-struct Timer2Modes {
-    static constexpr uint8_t normal = 0b000;
-    static constexpr uint8_t ctc = 0b010;
-    static constexpr uint8_t fastPWM = 0b011;
-};
-
+} // namespace internal
 
 // ==================== Generic timer interface ==================== //
 
-template<typename Regs>
-using counter_t = typename Regs::counter_t;
-
-template<typename Regs>
-using compare_t = typename Regs::compare_t;
-
-// Interface for timers
-template<
-    typename Regs, 
-    counter_t<Regs> StartTick = 0,
-    uint16_t Prescaler = 64,
-    uint8_t Mode = 0,
-    compare_t<Regs> CompareA = 0,
-    compare_t<Regs> CompareB = 0
->
+template<typename Regs, typename Regs::counter_t<Regs> StartTick = 0, uint16_t Prescaler = 64, uint8_t Mode = 0,
+         typename Regs::compare_t CompareA = 0, typename Regs::compare_t CompareB = 0>
 struct Timer {
-    // Configure the timer with mode, prescaler, and optional compare values.
+    using counter_t = typename Regs::counter_t;
+    using compare_t = typename Regs::compare_t;
+
     static void configure() {
-        setWGM<Regs>(Mode);
+        internal::setWGM<Regs>(Mode);
         write(StartTick);
         setCompareA(CompareA);
         setCompareB(CompareB);
@@ -157,66 +123,49 @@ struct Timer {
             case 64:   return 0b011;
             case 256:  return 0b100;
             case 1024: return 0b101;
-            default:   return 0; // stop
+            default:   return 0;
         }
     }
 
-    // Start the timer with the given prescaler. Should call configure first.
     static void start(uint16_t prescaler = Prescaler) {
         stop();
-        uint8_t sreg = SREG;
-        cli();
+        fw::hal::disableInterrupts();
         Regs::tccrb |= prescalerBits(prescaler);
-        SREG = sreg;
+        fw::hal::restoreInterrupts();
     }
 
-    // Stop the timer.
     static void stop() {
-        uint8_t sreg = SREG;
-        cli();
+        fw::hal::disableInterrupts();
         Regs::tccrb &= ~0x07;
-        SREG = sreg;
+        fw::hal::restoreInterrupts();
     }
 
-    // Direct read of timer counter.
     static auto read() {
-        uint8_t sreg = SREG;
-        cli();
+        fw::hal::disableInterrupts();
         auto value = Regs::tcnt;
-        SREG = sreg;
+        fw::hal::restoreInterrupts();
         return value;
     }
-    
-    // Direct write to timer counter. Use with caution.
+
     static void write(counter_t<Regs> value = StartTick) {
-        uint8_t sreg = SREG;
-        cli();
+        fw::hal::disableInterrupts();
         Regs::tcnt = value;
-        SREG = sreg;
+        fw::hal::restoreInterrupts();
     }
 
-    // Set Output Compare Register A
-    static void setCompareA(compare_t<Regs> value) {
-        Regs::ocra = value;
-    }
-
-    // Set Output Compare Register B
-    static void setCompareB(compare_t<Regs> value) {
-        Regs::ocrb = value;
-    }
+    static void setCompareA(compare_t<Regs> value) { Regs::ocra = value; }
+    static void setCompareB(compare_t<Regs> value) { Regs::ocrb = value; }
 
     static void enableOverflowInterrupt() {
-        uint8_t sreg = SREG;
-        cli();
-        Regs::timsk |= (1 << TimerTraits<Regs>::toie);
-        SREG = sreg;
+        fw::hal::disableInterrupts();
+        Regs::timsk |= (1 << internal::TimerTraits<Regs>::toie);
+        fw::hal::restoreInterrupts();
     }
 
     static void disableOverflowInterrupt() {
-        uint8_t sreg = SREG;
-        cli();
-        Regs::timsk &= ~(1 << TimerTraits<Regs>::toie);
-        SREG = sreg;
+        fw::hal::disableInterrupts();
+        Regs::timsk &= ~(1 << internal::TimerTraits<Regs>::toie);
+        fw::hal::restoreInterrupts();
     }
 };
 

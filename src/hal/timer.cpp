@@ -1,11 +1,11 @@
 #include "hal/hal.h"
 
-namespace fw::hal {
+namespace fw::hal::internal {
 
 // ==================== ISR defenitions ==================== //
 
 ISR(TIMER0_OVF_vect) {
-    onTimer0Overflow();
+    internal::onTimer0Overflow();
 }
 
 ISR(TIMER1_OVF_vect) {
