@@ -32,7 +32,7 @@ int main() {
 
     uint32_t millis;
     while(true) {
-        sys::millis(&millis);
+        sys::millis(millis);
 
         if(millis % 1000 > 500) {
             LED_A::high();
